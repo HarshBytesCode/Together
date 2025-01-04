@@ -1,4 +1,9 @@
 import { WebSocketHandler } from "@/ws/WebSocket";
+import { LoadFiles } from "../utils/loadFiles";
+import { AddCamera } from "../utils/camera";
+import { AddKeys } from "../utils/addKeys";
+import { createAnimation } from "../utils/createAnimation";
+import { PerformAnimation } from "../utils/performAnimation";
 
 
 export class MainScene extends Phaser.Scene {
@@ -32,17 +37,12 @@ export class MainScene extends Phaser.Scene {
     
     
     preload() {
-
-        this.load.image("tiles", "/tiles/castle.png");
-        this.load.tilemapTiledJSON("map", "/maps/map3.json");
-        this.load.spritesheet("char", "/sprites/ch1.png", {
-            frameWidth: 32,
-            frameHeight: 32
-        })
-        
+        LoadFiles(this.load)  
     }
     
     create() {
+
+        // Later
 
         this.map = this.make.tilemap({key: "map", tileWidth: 16, tileHeight: 16 });
         this.tileset = this.map.addTilesetImage('castle', 'tiles')!;
@@ -58,7 +58,7 @@ export class MainScene extends Phaser.Scene {
         this.player.setFrame(1)
         this.physics.add.collider(this.player, this.wallsLayer);
 
-        // Look into thiss
+
         if(this.input.keyboard) {
             this.cursor = this.input.keyboard.createCursorKeys();
             this.keys = this.input.keyboard.addKeys({
@@ -74,31 +74,13 @@ export class MainScene extends Phaser.Scene {
             }
 
         }
-        
-        // const camera = this.cameras.main;
-        // camera.startFollow(this.player)
-        // camera.setZoom(2)
 
-        this.anims.create({
-            key: "walkLeft",
-            frames: this.anims.generateFrameNumbers("char", {start: 8, end: 11}),
-            frameRate: 10,
+        AddCamera({
+            cameras: this.cameras,
+            player: this.player
         })
-        this.anims.create({
-            key: "walkRight",
-            frames: this.anims.generateFrameNumbers("char", {start: 12, end: 15}),
-            frameRate: 10,
-        })
-        this.anims.create({
-            key: "walkUp",
-            frames: this.anims.generateFrameNumbers("char", {start: 4, end: 7}),
-            frameRate: 10,
-        })
-        this.anims.create({
-            key: "walkDown",
-            frames: this.anims.generateFrameNumbers("char", {start: 0, end: 3}),
-            frameRate: 10,
-        })
+
+        createAnimation(this.anims)
 
         this.wsHandler.connect();
 
@@ -123,8 +105,7 @@ export class MainScene extends Phaser.Scene {
 
             if(user.userData.userId == userId) {
                 user.player.destroy();
-                this.users.slice(i, 1);
-                
+                this.users.splice(i, 1);  
             }
 
         })
@@ -132,54 +113,12 @@ export class MainScene extends Phaser.Scene {
 
     update() {
         
-        const speed = 160;
-        this.player.setVelocity(0)
-        if(this.cursor.left.isDown || this.keys.A.isDown ) {
-            this.player.setVelocityX(-speed)
-            this.player.anims.play("walkLeft", true)  
-            this.wsHandler.sendPosition({
-                direction: "LEFT",
-                x: this.player.x,
-                y: this.player.y
-            })
-        }
-        else if(this.cursor.right.isDown || this.keys.D.isDown ) {
-            this.player.setVelocityX(speed)
-            this.player.anims.play("walkRight", true)  
-            this.wsHandler.sendPosition({
-                direction: "RIGHT",
-                x: this.player.x,
-                y: this.player.y
-            })
-        }
-
-        if(this.cursor.up.isDown || this.keys.W.isDown ) {
-            this.player.setVelocityY(-speed)
-            this.player.anims.play("walkUp", true)  
-            this.wsHandler.sendPosition({
-                direction: "UP",
-                x: this.player.x,
-                y: this.player.y
-            })
-        }
-        else if(this.cursor.down.isDown || this.keys.S.isDown ) {
-            this.player.setVelocityY(speed)
-            this.player.anims.play("walkDown", true)  
-            this.wsHandler.sendPosition({
-                direction: "DOWN",
-                x: this.player.x,
-                y: this.player.y
-            })
-        }
-
-        if(!this.cursor.left.isDown && !this.keys.A.isDown &&
-            !this.cursor.right.isDown && !this.keys.D.isDown &&
-            !this.cursor.up.isDown && !this.keys.W.isDown &&
-            !this.cursor.down.isDown && !this.keys.S.isDown
-        ) {
-            this.player.anims.stop()
-        }
-
+        PerformAnimation({
+            player: this.player,
+            cursor: this.cursor,
+            wsHandler: this.wsHandler,
+            keys: this.keys
+        })
         
     }
     
