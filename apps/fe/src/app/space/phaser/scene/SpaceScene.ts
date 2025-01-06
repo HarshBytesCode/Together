@@ -4,6 +4,7 @@ import { AddCamera } from "../utils/camera";
 import { AddKeys } from "../utils/addKeys";
 import { createAnimation } from "../utils/createAnimation";
 import { PerformAnimation } from "../utils/performAnimation";
+import { RtcHandler } from "@/rtc/rtcHandler";
 
 
 export class MainScene extends Phaser.Scene {
@@ -13,6 +14,7 @@ export class MainScene extends Phaser.Scene {
     private player!: Phaser.Physics.Arcade.Sprite;
     private wallsLayer!: Phaser.Tilemaps.TilemapLayer
     private wsHandler: WebSocketHandler;
+    private rtcHandler: RtcHandler;
     private users: {
         player: Phaser.Physics.Arcade.Sprite,
         userData: {
@@ -31,7 +33,8 @@ export class MainScene extends Phaser.Scene {
     constructor() {
 
         super({key: "MainScene"})
-        this.wsHandler = new WebSocketHandler(this);
+        this.wsHandler = WebSocketHandler.getInstance(this);
+        this.rtcHandler = RtcHandler.getInstance(this.wsHandler);
 
     }
     

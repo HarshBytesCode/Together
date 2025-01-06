@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "mediasoup-client": "^3.8.1",
     "next": "15.1.0",
     "phaser": "^3.87.0",
     "react": "^19.0.0",
