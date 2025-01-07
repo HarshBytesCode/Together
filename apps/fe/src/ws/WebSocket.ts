@@ -1,5 +1,6 @@
 import { MainScene } from "@/app/space/phaser/scene/SpaceScene";
 import { RtcHandler } from "@/rtc/rtcHandler";
+import { DtlsParameters } from "mediasoup-client/lib/types";
 
 
 export class WebSocketHandler{
@@ -50,6 +51,32 @@ export class WebSocketHandler{
             if(parshedData.type == "rtpCapabilities") {
                 
                 this.rtcHandler.loadDevice(parshedData.rtpCapabilities)
+
+                this.socket?.send(JSON.stringify({
+                    type: "CREATE_TRANSPORT",
+                }))
+
+                
+            }
+
+            if(parshedData.type == "TRANSPORT_CREATED") {
+                this.rtcHandler.initializeTransport(parshedData)
+            }
+
+            if(parshedData.type == "NEW_PRODUCER") {
+                const capabilities = this.rtcHandler.getDeviceCapabilities()
+
+                this.socket?.send(JSON.stringify({
+                    type: "CONSUME",
+                    producerId: parshedData.producerId,
+                    kind: parshedData.kind,
+                    rtpCapabilities: capabilities
+                }))
+            }
+
+            if(parshedData.type == "CONSUMER_CREATED") {
+                console.log("CREATED");
+                
             }
             
             if(parshedData.type == "USER_JOINED") {
@@ -57,6 +84,7 @@ export class WebSocketHandler{
                 this.scene.addUser(parshedData.user);
                 
             }
+
 
             if(parshedData.type == "CHANGE_POSITION") {
                 
@@ -88,7 +116,22 @@ export class WebSocketHandler{
 
         this.socket?.send(JSON.stringify({
             type,
-            payload
+            ...payload
+        }))
+    }
+
+    connectProducerTransport(dtlsParameters: DtlsParameters) {
+
+        this.socket?.send(JSON.stringify({
+            type: "CONNECTPRODUCER",
+            dtlsParameters
+        }))
+    }
+
+    connectConsumerTransport(dtlsParameters: DtlsParameters) {
+        this.socket?.send(JSON.stringify({
+            type: "CONNECTCONSUMER",
+            dtlsParameters
         }))
     }
 

@@ -85,6 +85,8 @@ export class MainScene extends Phaser.Scene {
 
         createAnimation(this.anims)
 
+
+        // Don't put this up in the order.
         this.wsHandler.connect();
 
     }

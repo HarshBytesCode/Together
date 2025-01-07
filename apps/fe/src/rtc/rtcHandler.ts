@@ -31,20 +31,24 @@ export class RtcHandler {
         await this.device.load({routerRtpCapabilities})
     }
 
+    getDeviceCapabilities() {
+        return this.device.rtpCapabilities
+    }
+
     async initializeTransport(data: any) {
 
         this.sendTransport = this.device.createSendTransport({
 
-            id: data.id,
-            iceCandidates: data.iceCandidates,
-            iceParameters: data.iceParameters,
-            dtlsParameters: data.dtlsParameters
+            id: data.producerTransport.transportId,
+            iceCandidates: data.producerTransport.iceCandidates,
+            iceParameters: data.producerTransport.iceParameters,
+            dtlsParameters: data.producerTransport.dtlsParameters
 
         })
 
         this.sendTransport.on('connect', async ({ dtlsParameters }, callbackify, errback) => {
             
-            
+            this.wsHandler.connectProducerTransport(dtlsParameters)
 
         })
 
@@ -54,20 +58,21 @@ export class RtcHandler {
 
         this.recvTransport = this.device.createRecvTransport({
 
-            id: data.id,
-            iceCandidates: data.iceCandidates,
-            iceParameters: data.iceParameters,
-            dtlsParameters: data.dtlsParameters
+            id: data.recieverTransport.transportId,
+            iceCandidates: data.recieverTransport.iceCandidates,
+            iceParameters: data.recieverTransport.iceParameters,
+            dtlsParameters: data.recieverTransport.dtlsParameters
 
         })
 
         this.recvTransport.on('connect', async ( { dtlsParameters }, callbackify, errback) => {
 
+            this.wsHandler.connectConsumerTransport(dtlsParameters)
         })
 
 
-        
     }
+
 
 
 }

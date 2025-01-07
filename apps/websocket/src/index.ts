@@ -7,7 +7,13 @@ export enum MessageType {
     CHANGE_POSITION = "CHANGE_POSITION",
     USER_LEFT = "USER_LEFT",
     MEDIASOUP = "MEDIASOUP",
-    RTPCAPABILITIES = "rtpCapabilities"
+    RTPCAPABILITIES = "rtpCapabilities",
+    CREATE_TRANSPORT = "CREATE_TRANSPORT",
+    TRANSPORT_CREATED = "TRANSPORT_CREATED",
+    CONNECT = "CONNECT",
+    NEW_PRODUCER = "NEW_PRODUCER",
+    CONSUME= "CONSUME",
+    CONSUMER_CREATED = "CONSUMER_CREATED"
 }
 
 interface MessageDataType {
@@ -83,6 +89,23 @@ class WebSocketService {
                     }
                     
                     break;
+                
+                case MessageType.CREATE_TRANSPORT:
+                    this.mediasoupWs.send(JSON.stringify({
+                        type: parsedData.type,
+                        spaceId,
+                        userId
+                    }))
+                    break;
+
+                case MessageType.CONNECT:
+                case MessageType.CONSUME:
+                    this.mediasoupWs.send(JSON.stringify({
+                        ...parsedData,
+                        spaceId,
+                        userId
+                    }))
+                    break;
 
                 case MessageType.JOIN_SPACE:
 
@@ -112,12 +135,14 @@ class WebSocketService {
                     break;
 
                 case MessageType.RTPCAPABILITIES:
+                case MessageType.TRANSPORT_CREATED:
+                case MessageType.NEW_PRODUCER:
+                case MessageType.CONSUMER_CREATED:
                     const space = this.spaces.get(parsedData.spaceId)
                     space?.users.map((user) => {
                         if(user.userDetails.userId == parsedData.userId) {
                             user.ws.send(JSON.stringify({
-                                type: "rtpCapabilities",
-                                rtpCapabilities: parsedData.rtpCapabilites
+                                ...parsedData
                             }))
                         }
                     })
