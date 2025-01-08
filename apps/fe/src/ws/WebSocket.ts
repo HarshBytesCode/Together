@@ -9,12 +9,10 @@ export class WebSocketHandler{
     private socket: WebSocket | null = null;
     private scene: MainScene;
     private n: string = (Math.floor(Math.random()*100)).toString();
-    private rtcHandler: RtcHandler;
+    private rtcHandler!: RtcHandler;
 
     constructor(scene: MainScene) {
         this.scene = scene;
-        this.rtcHandler = RtcHandler.getInstance(WebSocketHandler.instance)
-
     }
 
     public static getInstance(scene: MainScene) {
@@ -24,6 +22,10 @@ export class WebSocketHandler{
         }
 
         return WebSocketHandler.instance;
+    }
+
+    public setRtcHandler(rtcHandler: RtcHandler) {
+        this.rtcHandler = rtcHandler;
     }
 
     connect() {
@@ -43,7 +45,6 @@ export class WebSocketHandler{
         }
 
         this.socket.onmessage = (event: MessageEvent) => { 
-            console.log("mess", event);
             
             const parshedData = JSON.parse(event.data)
             console.log(parshedData);
@@ -60,7 +61,9 @@ export class WebSocketHandler{
             }
 
             if(parshedData.type == "TRANSPORT_CREATED") {
+
                 this.rtcHandler.initializeTransport(parshedData)
+
             }
 
             if(parshedData.type == "NEW_PRODUCER") {
@@ -75,7 +78,8 @@ export class WebSocketHandler{
             }
 
             if(parshedData.type == "CONSUMER_CREATED") {
-                console.log("CREATED");
+                
+                this.rtcHandler.consume(parshedData)
                 
             }
             
@@ -120,11 +124,23 @@ export class WebSocketHandler{
         }))
     }
 
-    connectProducerTransport(dtlsParameters: DtlsParameters) {
+    async connectProducerTransport(dtlsParameters: DtlsParameters) {
 
         this.socket?.send(JSON.stringify({
             type: "CONNECTPRODUCER",
             dtlsParameters
+        }))
+
+    }
+
+    async Produce({transportId, kind, rtpParameters}: any) {
+
+        this.socket?.send(JSON.stringify({
+            type: "PRODUCE",
+            transportId,
+            kind,
+            rtpParameters
+
         }))
     }
 

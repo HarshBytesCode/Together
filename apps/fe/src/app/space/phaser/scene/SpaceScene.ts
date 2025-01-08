@@ -35,8 +35,10 @@ export class MainScene extends Phaser.Scene {
         super({key: "MainScene"})
         this.wsHandler = WebSocketHandler.getInstance(this);
         this.rtcHandler = RtcHandler.getInstance(this.wsHandler);
+        this.wsHandler.setRtcHandler(this.rtcHandler);
 
     }
+    
     
     
     preload() {
@@ -88,6 +90,8 @@ export class MainScene extends Phaser.Scene {
 
         // Don't put this up in the order.
         this.wsHandler.connect();
+
+        this.rtcHandler.produceVideo()
 
     }
 

@@ -10,10 +10,12 @@ export enum MessageType {
     RTPCAPABILITIES = "rtpCapabilities",
     CREATE_TRANSPORT = "CREATE_TRANSPORT",
     TRANSPORT_CREATED = "TRANSPORT_CREATED",
-    CONNECT = "CONNECT",
+    CONNECTPRODUCER = "CONNECTPRODUCER",
+    CONNECTCONSUMER = "CONNECTCONSUMER",
     NEW_PRODUCER = "NEW_PRODUCER",
     CONSUME= "CONSUME",
-    CONSUMER_CREATED = "CONSUMER_CREATED"
+    CONSUMER_CREATED = "CONSUMER_CREATED",
+    PRODUCE = "PRODUCE"
 }
 
 interface MessageDataType {
@@ -82,7 +84,6 @@ class WebSocketService {
             switch (parsedData.type) {
 
                 case MessageType.MEDIASOUP:
-                    console.log("hello");
                     
                     if(!this.mediasoupWs) {
                         this.mediasoupWs = ws;
@@ -91,6 +92,7 @@ class WebSocketService {
                     break;
                 
                 case MessageType.CREATE_TRANSPORT:
+
                     this.mediasoupWs.send(JSON.stringify({
                         type: parsedData.type,
                         spaceId,
@@ -98,8 +100,11 @@ class WebSocketService {
                     }))
                     break;
 
-                case MessageType.CONNECT:
+                case MessageType.CONNECTPRODUCER:
+                case MessageType.CONNECTCONSUMER:
+                case MessageType.PRODUCE:
                 case MessageType.CONSUME:
+
                     this.mediasoupWs.send(JSON.stringify({
                         ...parsedData,
                         spaceId,
@@ -136,8 +141,8 @@ class WebSocketService {
 
                 case MessageType.RTPCAPABILITIES:
                 case MessageType.TRANSPORT_CREATED:
-                case MessageType.NEW_PRODUCER:
                 case MessageType.CONSUMER_CREATED:
+
                     const space = this.spaces.get(parsedData.spaceId)
                     space?.users.map((user) => {
                         if(user.userDetails.userId == parsedData.userId) {
@@ -147,6 +152,17 @@ class WebSocketService {
                         }
                     })
                     break;
+
+                case MessageType.NEW_PRODUCER:
+
+                    const space2 = this.spaces.get(parsedData.spaceId)
+                    space2?.users.map((user) => {
+                            user.ws.send(JSON.stringify({
+                                ...parsedData
+                            }))
+                    })
+                    break;
+
                 default:
                     break;
 

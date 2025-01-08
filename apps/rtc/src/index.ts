@@ -27,7 +27,6 @@ class RTC {
     
     constructor() {
         this.socket = new WebSocket('ws://localhost:8081');
-        console.log(this.socket, "hee");
         
     }
     
@@ -61,116 +60,162 @@ class RTC {
             switch(parshedData.type) {
 
                 case "getRtpCapabilities":
-                    const rtpCapabilites = this.router.rtpCapabilities
+                    const rtpCapabilities = this.router.rtpCapabilities
 
                     this.socket.send(JSON.stringify({
                         type: "rtpCapabilities",
-                        rtpCapabilites,
+                        rtpCapabilities,
                         spaceId: parshedData.spaceId,
                         userId: parshedData.userId
                     }))
                     break;
 
                 case "CREATE_TRANSPORT":
-                    
-                    const producerTransport = await this.router.createWebRtcTransport({
-                        listenIps: [{
-                            ip: "0.0.0.0",
-                            announcedIp: getLocalIPv4Address()
-                        }],
-                        enableUdp: true,
-                        enableTcp: true,
-                        preferUdp: true
-                    })
 
-                    const recieverTransport = await this.router.createWebRtcTransport({
-                        listenIps: [{
-                            ip: "0.0.0.0",
-                            announcedIp: getLocalIPv4Address()
-                        }],
-                        enableUdp: true,
-                        enableTcp: true,
-                        preferUdp: true
-                    })
-
-                    const spaceExist = await this.spaces.get(parshedData.spaceId);
-
-                    if(!spaceExist) {
-                        this.spaces.set(parshedData.spaceId, {
-                            users: new Map()
+                    try {
+                        const producerTransport = await this.router.createWebRtcTransport({
+                            listenIps: [{
+                                ip: "0.0.0.0",
+                                announcedIp: getLocalIPv4Address()
+                            }],
+                            enableUdp: true,
+                            enableTcp: true,
+                            preferUdp: true
                         })
-                    }
-
-                    const space = await this.spaces.get(parshedData.spaceId);
-
-                    space.users.set(parshedData.userId, {
-                        producerTransport,
-                        recieverTransport
-                    })
-
-                    this.socket.send(JSON.stringify({
-                        type: "TRANSPORT_CREATED",
-                        spaceId: parshedData.spaceId,
-                        userId: parshedData.userId,
-                        producerTransport: {
-                            transpordId: producerTransport.id,
-                            iceCandidates: producerTransport.iceCandidates,
-                            iceParameters: producerTransport.iceParameters,
-                            dtlsParameters: producerTransport.dtlsParameters
-                        },
-                        recieverTransport: {
-                            transpordId: recieverTransport.id,
-                            iceCandidates: recieverTransport.iceCandidates,
-                            iceParameters: recieverTransport.iceParameters,
-                            dtlsParameters: recieverTransport.dtlsParameters
+    
+                        const recieverTransport = await this.router.createWebRtcTransport({
+                            listenIps: [{
+                                ip: "0.0.0.0",
+                                announcedIp: getLocalIPv4Address()
+                            }],
+                            enableUdp: true,
+                            enableTcp: true,
+                            preferUdp: true
+                        })
+    
+                        const spaceExist = await this.spaces.get(parshedData.spaceId);
+    
+                        if(!spaceExist) {
+                            this.spaces.set(parshedData.spaceId, {
+                                users: new Map()
+                            })
                         }
-                    }))
-
-                    for(const [producerTransport] of space.users) {
+    
+                        const space = await this.spaces.get(parshedData.spaceId);
+    
+                        space.users.set(parshedData.userId, {
+                            producerTransport,
+                            recieverTransport
+                        })
+    
                         this.socket.send(JSON.stringify({
+    
+                            type: "TRANSPORT_CREATED",
                             spaceId: parshedData.spaceId,
                             userId: parshedData.userId,
-                            type: "NEW_PRODUCER",
-                            producerId: producerTransport.id,
-                            kind: producerTransport.kind,
+                            producerTransport: {
+                                transportId: producerTransport.id,
+                                iceCandidates: producerTransport.iceCandidates,
+                                iceParameters: producerTransport.iceParameters,
+                                dtlsParameters: producerTransport.dtlsParameters
+                            },
+                            recieverTransport: {
+                                transportId: recieverTransport.id,
+                                iceCandidates: recieverTransport.iceCandidates,
+                                iceParameters: recieverTransport.iceParameters,
+                                dtlsParameters: recieverTransport.dtlsParameters
+                            }
+                        
                         }))
+
+                    } catch (error) {
+                        console.log("Error creating transport.", error);
+                        
+                    }
+                    
+
+                    
+                    break;
+                    
+                case 'CONNECTPRODUCER':
+
+                    try {
+                        const space2 = this.spaces.get(parshedData.spaceId);
+                        const user = space2.users.get(parshedData.userId);
+                        console.log("reach");
+                        
+                        await user.producerTransport.connect({dtlsParameters: parshedData.dtlsParameters})
+                        
+                    } catch (error) {
+                        console.log("Error in connecting producer.", error);
+                        
                     }
 
                     break;
 
-                case 'CONNECTPRODUCER':
-                    const space2 = this.spaces.get(parshedData.spaceId);
-                    const user = space2.users.get(parshedData.userId);
+                case 'PRODUCE':
+                    try {
+                        
+                        const space5 = this.spaces.get(parshedData.spaceId);
+                        const user4 = space5.users.get(parshedData.userId);                      
+                        const producer = await user4.producerTransport.produce({
+                            kind: parshedData.kind,
+                            rtpParameters: parshedData.rtpParameters
+                        })
 
-                    user.producerTransport.connect({dtlsParameters: parshedData.dtlsParameters})
-                    break;
+                        this.socket.send(JSON.stringify({
+                            type: "NEW_PRODUCER",
+                            spaceId: parshedData.spaceId,
+                            userId: parshedData.userId,
+                            producerId: producer.id,
+                            kind: producer.kind,
+                        }))
+                    } catch (error) {
+                        console.log("Error in producing.", error);
+                        
+                    }
+                        
                 case 'CONNECTCONSUMER':
-                    const space3 = this.spaces.get(parshedData.spaceId);
-                    const user2 = space3.users.get(parshedData.userId);
-
-                    user2.recieverTransport.connect({dtlsParameters: parshedData.dtlsParameters})
+                    try {
+                        const space3 = this.spaces.get(parshedData.spaceId);
+                        const user2 = space3.users.get(parshedData.userId);
+                        console.log(user2);
+                        
+                        await user2.recieverTransport.connect({dtlsParameters: parshedData.dtlsParameters})
+                        
+                    } catch (error) {
+                        console.log("Error in connecting consumer.", error);
+                        
+                    }
                     break;
 
                 case "CONSUME":
+                    try {
+                        const space4 = this.spaces.get(parshedData.spaceId);
+                        const user3 = space4.users.get(parshedData.userId);
+    
+                        const consumer = await user3.recieverTransport.consume({
+                            producerId: parshedData.producerId,
+                            kind: parshedData.kind,
+                            rtpCapabilities: parshedData.rtpCapabilities
+                        })
+    
+                        
+                        this.socket.send(JSON.stringify({
+                            type: "CONSUMER_CREATED",
+                            id: consumer.id,
+                            producerId: parshedData.producerId,
+                            rtpParameters: consumer.rtpParameters,
+                            kind: consumer.kind,
+                            userId: parshedData.userId,
+                            spaceId: parshedData.spaceId
+                        }))
+                        
+                    } catch (error) {
+                        console.log("Error during consuming.", error);
+                        
+                    }
 
-                    const space4 = this.spaces.get(parshedData.spaceId);
-                    const user3 = space3.users.get(parshedData.userId);
-
-                    const consumer = user3.recieverTransport.consume({
-                        producerId: parshedData.producerId,
-                        kind: parshedData.kind,
-                        rtpCapabilites: parshedData.rtpCapabilites
-                    })
-
-                    this.socket.send(JSON.stringify({
-                        type: "CONSUMER_CREATED",
-                        id: consumer.id,
-                        producerId: parshedData.producerId,
-                        rtpParameters: consumer.rtpParameters,
-                        kind: consumer.kind,
-                        userId: parshedData.userId,
-                        spaceId: parshedData.spaceId
-                    }))
 
                     break;
             }
