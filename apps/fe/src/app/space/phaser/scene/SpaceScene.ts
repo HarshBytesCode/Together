@@ -1,7 +1,6 @@
 import { WebSocketHandler } from "@/ws/WebSocket";
 import { LoadFiles } from "../utils/loadFiles";
 import { AddCamera } from "../utils/camera";
-import { AddKeys } from "../utils/addKeys";
 import { createAnimation } from "../utils/createAnimation";
 import { PerformAnimation } from "../utils/performAnimation";
 import { RtcHandler } from "@/rtc/rtcHandler";
@@ -9,12 +8,13 @@ import { RtcHandler } from "@/rtc/rtcHandler";
 
 export class MainScene extends Phaser.Scene {
 
+    public static instance: MainScene;
     private map!: Phaser.Tilemaps.Tilemap;
     private tileset!: Phaser.Tilemaps.Tileset;
     private player!: Phaser.Physics.Arcade.Sprite;
     private wallsLayer!: Phaser.Tilemaps.TilemapLayer
-    private wsHandler: WebSocketHandler;
-    private rtcHandler: RtcHandler;
+    public wsHandler: WebSocketHandler;
+    public rtcHandler: RtcHandler;
     private users: {
         player: Phaser.Physics.Arcade.Sprite,
         userData: {
@@ -37,6 +37,15 @@ export class MainScene extends Phaser.Scene {
         this.rtcHandler = RtcHandler.getInstance(this.wsHandler);
         this.wsHandler.setRtcHandler(this.rtcHandler);
 
+    }
+
+    public static getInstance() {
+
+        if(!this.instance) {
+            this.instance = new MainScene();
+        }
+
+        return this.instance;
     }
     
     
@@ -90,8 +99,6 @@ export class MainScene extends Phaser.Scene {
 
         // Don't put this up in the order.
         this.wsHandler.connect();
-
-        this.rtcHandler.produceVideo()
 
     }
 

@@ -1,6 +1,6 @@
+import { useConferenceUsers } from "@/hooks/useConferenceUsers";
 import { WebSocketHandler } from "@/ws/WebSocket";
-import { Device, types } from "mediasoup-client"
-
+import { Device, types } from "mediasoup-client";
 
 export class RtcHandler {
 
@@ -9,6 +9,7 @@ export class RtcHandler {
     private sendTransport!: types.Transport;
     private recvTransport!: types.Transport;
     private wsHandler: WebSocketHandler;
+    public users: {}[] = [];
 
 
     public static getInstance(ws: WebSocketHandler) {
@@ -111,13 +112,18 @@ export class RtcHandler {
             kind: data.kind,
 
         })
+        const stream = new MediaStream();
+        stream.addTrack(consumedVideo.track)
+        const videoElement = document.createElement('video');
+        videoElement.srcObject = stream;
+        videoElement.autoplay = true;
+
+        document.getElementById("conference-video")?.appendChild(videoElement)
         
-        const video = document.createElement('video')
-        video.srcObject = new MediaStream([consumedVideo.track])
-        video.autoplay = true;
-        video.playsInline = true;
-        video.style.border = "2px solid red"
-        document.body.appendChild(video)
+        this.users.push({
+            id: consumedVideo.id,
+            stream: consumedVideo.track
+        })
     }
 
     async produceVideo() {
